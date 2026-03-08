@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Analytics | Tableau Dashboards</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-green: #00ff88;
+            --dark-bg: #020408;
+            --card-bg: rgba(0,212,255,0.04);
+            --border: rgba(0,212,255,0.18);
+            --text-primary: #e8f4fd;
+            --text-dim: rgba(232,244,253,0.45);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:var(--dark-bg); color:var(--text-primary); font-family:'Rajdhani',sans-serif; overflow-x:hidden; min-height:100vh; }
+
+        .bg-grid { position:fixed; inset:0; background-image:linear-gradient(rgba(0,212,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.022) 1px,transparent 1px); background-size:60px 60px; z-index:0; pointer-events:none; }
+
+        nav { position:fixed; top:0; left:0; right:0; z-index:100; padding:18px 56px; display:flex; justify-content:space-between; align-items:center; background:rgba(2,4,8,0.96); backdrop-filter:blur(14px); border-bottom:1px solid rgba(0,212,255,0.1); }
+        .logo { font-family:'Orbitron',monospace; font-size:1.25rem; font-weight:900; letter-spacing:4px; color:var(--neon-blue); text-shadow:0 0 18px var(--neon-blue); text-decoration:none; }
+        .logo span { color:var(--neon-green); }
+        .back-btn { text-decoration:none; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:0.76rem; letter-spacing:3px; text-transform:uppercase; border:1px solid var(--border); padding:9px 20px; transition:all 0.3s; }
+        .back-btn:hover { color:var(--neon-blue); border-color:var(--neon-blue); background:rgba(0,212,255,0.06); }
+
+        .page-wrap { position:relative; z-index:1; padding:110px 56px 60px; }
+
+        .header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:40px; }
+        .header-tag { font-family:'Share Tech Mono',monospace; font-size:0.72rem; letter-spacing:5px; color:var(--neon-green); display:block; margin-bottom:10px; }
+        .header-title { font-family:'Orbitron',monospace; font-size:clamp(1.5rem,3vw,2.4rem); font-weight:900; }
+        .header-title span { color:var(--neon-blue); text-shadow:0 0 24px rgba(0,212,255,0.5); }
+
+        /* TABS */
+        .tab-strip { display:flex; border-bottom:1px solid var(--border); }
+        .tab-btn { padding:14px 28px; font-family:'Share Tech Mono',monospace; font-size:0.72rem; letter-spacing:3px; text-transform:uppercase; color:var(--text-dim); cursor:pointer; border:none; background:transparent; border-bottom:3px solid transparent; transition:all 0.3s; position:relative; bottom:-1px; white-space:nowrap; }
+        .tab-btn:hover { color:var(--text-primary); }
+        .tab-btn.active { color:var(--neon-blue); border-bottom-color:var(--neon-blue); text-shadow:0 0 12px rgba(0,212,255,0.4); }
+
+        /* PROGRESS BAR */
+        .progress-track { width:100%; height:2px; background:rgba(0,212,255,0.08); }
+        .progress-bar { height:100%; background:linear-gradient(90deg,var(--neon-blue),var(--neon-green)); box-shadow:0 0 8px var(--neon-blue); transition:width 0.4s ease; width:25%; }
+
+        /* SLIDE PANELS */
+        .slide-panel { display:none; flex-direction:column; gap:24px; padding-top:24px; }
+        .slide-panel.active { display:flex; }
+        /* IMAGE STAGE */
+        .image-stage { position:relative; border:1px solid var(--border); background:rgba(0,3,10,0.9); overflow:hidden; }
+        .image-stage::before { content:''; position:absolute; top:8px; left:8px; width:22px; height:22px; border-top:2px solid var(--neon-blue); border-left:2px solid var(--neon-blue); z-index:3; pointer-events:none; }
+        .image-stage::after  { content:''; position:absolute; bottom:8px; right:8px; width:22px; height:22px; border-bottom:2px solid var(--neon-blue); border-right:2px solid var(--neon-blue); z-index:3; pointer-events:none; }
+        .corner-tr { position:absolute; top:8px; right:8px; width:22px; height:22px; border-top:2px solid var(--neon-green); border-right:2px solid var(--neon-green); z-index:3; pointer-events:none; }
+        .corner-bl { position:absolute; bottom:8px; left:8px; width:22px; height:22px; border-bottom:2px solid var(--neon-green); border-left:2px solid var(--neon-green); z-index:3; pointer-events:none; }
+        .scanlines { position:absolute; inset:0; z-index:2; pointer-events:none; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px); }
+
+        .stage-topbar { display:flex; justify-content:space-between; align-items:center; padding:11px 18px; background:rgba(0,5,15,0.97); border-bottom:1px solid var(--border); position:relative; z-index:4; }
+        .stage-id { font-family:'Share Tech Mono',monospace; font-size:0.67rem; letter-spacing:3px; color:var(--neon-green); }
+        .stage-right { display:flex; align-items:center; gap:16px; }
+        .stage-live { display:flex; align-items:center; gap:7px; font-family:'Share Tech Mono',monospace; font-size:0.64rem; letter-spacing:2px; color:var(--text-dim); }
+        .live-dot { width:6px; height:6px; border-radius:50%; background:var(--neon-green); box-shadow:0 0 8px var(--neon-green); animation:blink 1.4s ease-in-out infinite; }
+        @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.25} }
+        .sub-counter { font-family:'Share Tech Mono',monospace; font-size:0.64rem; letter-spacing:2px; color:var(--neon-blue); background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.2); padding:3px 10px; }
+
+        /* THE IMAGE */
+        .main-img { width:100%; height:auto; object-fit:contain; display:block; position:relative; z-index:1; background:#000510; }        .img-placeholder { width:100%; height:700px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:repeating-linear-gradient(45deg,rgba(0,212,255,0.015),rgba(0,212,255,0.015) 10px,transparent 10px,transparent 20px); position:relative; z-index:1; }
+        .ph-icon { font-size:3.5rem; opacity:0.2; }
+        .ph-title { font-family:'Orbitron',monospace; font-size:0.82rem; letter-spacing:4px; color:rgba(0,212,255,0.25); text-align:center; }
+        .ph-code { font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:rgba(0,255,136,0.25); background:rgba(0,255,136,0.04); padding:7px 18px; border:1px solid rgba(0,255,136,0.12); }
+
+        /* SUB IMAGE PANELS */
+        .sub-panel { display:none; }
+        .sub-panel.active { display:block; }
+
+        /* INNER NAV BAR */
+        .inner-nav { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; background:rgba(0,5,15,0.95); border-top:1px solid var(--border); position:relative; z-index:4; }
+        .inner-arrow { width:44px; height:44px; border:1.5px solid var(--border); background:rgba(0,212,255,0.04); color:var(--neon-blue); font-size:1.1rem; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.25s; }
+        .inner-arrow:hover { background:rgba(0,212,255,0.14); border-color:var(--neon-blue); box-shadow:0 0 16px rgba(0,212,255,0.25); }
+        .inner-arrow.dim { opacity:0.18; pointer-events:none; }
+
+        .inner-dots { display:flex; gap:10px; align-items:center; }
+        .inner-dot { width:10px; height:10px; border-radius:50%; border:1.5px solid rgba(0,212,255,0.3); cursor:pointer; transition:all 0.25s; display:inline-block; }
+        .inner-dot:hover { border-color:var(--neon-blue); background:rgba(0,212,255,0.3); }
+        .inner-dot.active { background:var(--neon-blue); border-color:var(--neon-blue); box-shadow:0 0 8px var(--neon-blue); transform:scale(1.3); }
+        .inner-count { font-family:'Share Tech Mono',monospace; font-size:0.68rem; letter-spacing:3px; color:var(--neon-blue); }
+
+        /* INFO BAR */
+        .info-bar { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:28px; padding:22px 28px; border:1px solid var(--border); background:var(--card-bg); position:relative; }
+        .info-bar::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--neon-blue),var(--neon-green)); box-shadow:0 0 10px var(--neon-blue); }
+        .info-num { font-family:'Orbitron',monospace; font-size:2.6rem; font-weight:900; line-height:1; color:rgba(0,212,255,0.12); min-width:60px; }
+        .info-persona { font-family:'Share Tech Mono',monospace; font-size:0.68rem; letter-spacing:4px; color:var(--neon-green); margin-bottom:6px; display:block; }
+        .info-title { font-family:'Orbitron',monospace; font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-bottom:8px; }
+        .info-desc { font-size:0.95rem; color:var(--text-dim); line-height:1.7; font-weight:300; }
+        .info-tags { display:flex; flex-direction:column; gap:8px; align-items:flex-end; flex-shrink:0; }
+        .tag { padding:4px 14px; border:1px solid rgba(0,212,255,0.18); font-family:'Share Tech Mono',monospace; font-size:0.62rem; letter-spacing:2px; color:var(--neon-blue); background:rgba(0,212,255,0.04); white-space:nowrap; }
+
+        /* THUMBS */
+        .thumb-strip { display:flex; gap:14px; justify-content:center; }
+        .thumb-item { flex:1; max-width:220px; border:1.5px solid var(--border); background:rgba(0,5,15,0.8); cursor:pointer; transition:all 0.3s; position:relative; overflow:hidden; }
+        .thumb-item:hover { border-color:rgba(0,212,255,0.5); box-shadow:0 0 18px rgba(0,212,255,0.12); }
+        .thumb-item.active { border-color:var(--neon-blue); box-shadow:0 0 16px rgba(0,212,255,0.3); }
+        .thumb-item.active::after { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--neon-blue),var(--neon-green)); box-shadow:0 0 8px var(--neon-blue); }
+        .thumb-ph { width:100%; height:88px; display:flex; align-items:center; justify-content:center; font-size:1.6rem; opacity:0.22; background:repeating-linear-gradient(45deg,rgba(0,212,255,0.02),rgba(0,212,255,0.02) 8px,transparent 8px,transparent 16px); transition:opacity 0.3s; }
+        .thumb-item:hover .thumb-ph { opacity:0.4; }
+        .thumb-img-small { width:100%; height:88px; object-fit:cover; object-position:top; display:block; transition:transform 0.4s; }
+        .thumb-item:hover .thumb-img-small { transform:scale(1.05); }
+        .thumb-label { padding:8px 10px; font-family:'Share Tech Mono',monospace; font-size:0.58rem; letter-spacing:2px; color:var(--text-dim); text-transform:uppercase; border-top:1px solid var(--border); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color 0.3s; }
+        .thumb-item.active .thumb-label { color:var(--neon-blue); }
+        .thumb-badge { position:absolute; top:6px; right:6px; background:rgba(0,212,255,0.18); border:1px solid rgba(0,212,255,0.4); font-family:'Share Tech Mono',monospace; font-size:0.55rem; letter-spacing:1px; color:var(--neon-blue); padding:2px 7px; }
+
+        .hint { text-align:center; margin-top:8px; opacity:0.35; font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:2px; color:var(--text-dim); }
+
+        /* ALL GRAPHS GRID */
+        .all-graphs-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .graph-card {
+            border: 1px solid var(--border);
+            background: rgba(0,3,10,0.9);
+            overflow: hidden;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .graph-card:hover {
+            border-color: rgba(0,212,255,0.5);
+            box-shadow: 0 0 24px rgba(0,212,255,0.12);
+            transform: translateY(-4px);
+        }
+        .graph-card-top {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px;
+            background: rgba(0,5,15,0.97);
+            border-bottom: 1px solid var(--border);
+        }
+        .graph-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.62rem; letter-spacing: 2px; color: var(--neon-green);
+        }
+        .graph-tag {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.58rem; letter-spacing: 2px; color: var(--text-dim);
+            border: 1px solid var(--border); padding: 2px 8px;
+        }
+        .graph-img {
+    width: 100%; height: auto;
+    object-fit: contain;
+    display: block; transition: transform 0.4s;
+    background: #000510;
+}
+        .graph-card:hover .graph-img { transform: scale(1.03); }
+        .graph-placeholder {
+            width: 100%; height: 220px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 10px;
+            background: repeating-linear-gradient(45deg,rgba(0,212,255,0.015),rgba(0,212,255,0.015) 10px,transparent 10px,transparent 20px);
+        }
+        .graph-card-bottom {
+            padding: 10px 14px;
+            border-top: 1px solid var(--border);
+            background: rgba(0,5,15,0.6);
+        }
+        .graph-persona {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.6rem; letter-spacing: 2px; color: var(--text-dim);
+        }
+
+        @media(max-width:768px){
+            nav{padding:14px 20px;} .page-wrap{padding:100px 16px 40px;}
+            .main-img,.img-placeholder{height:240px;} .info-bar{grid-template-columns:1fr;}
+            .info-num{display:none;} .info-tags{flex-direction:row;flex-wrap:wrap;}
+            .tab-btn{padding:10px 14px;font-size:0.62rem;}
+            .all-graphs-grid{grid-template-columns:1fr;}
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+
+<nav>
+    <a href="index.html" class="logo">EV<span>ANALYTICS</span></a>
+    <a href="index.html" class="back-btn">&#8592;&nbsp; Back to Home</a>
+</nav>
+
+<div class="page-wrap">
+
+    <div class="header">
+        <div>
+            <span class="header-tag">// Tableau Visualizations</span>
+            <h1 class="header-title">Interactive <span>Dashboards</span></h1>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-strip">
+        <button class="tab-btn active" onclick="showSlide(0)">01 · Main Dashboard</button>
+        <button class="tab-btn"        onclick="showSlide(1)">02 · Charging Patterns</button>
+        <button class="tab-btn"        onclick="showSlide(2)">03 · Battery Performance</button>
+        <button class="tab-btn"        onclick="showSlide(3)">04 · Model Efficiency</button>
+        <button class="tab-btn"        onclick="showSlide(4)">05 · All Graphs</button>
+    </div>
+
+    <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+
+    <!-- ══════════════════════════════════════
+         SLIDE 1 — MAIN DASHBOARD (multi-image)
+    ══════════════════════════════════════ -->
+    <div class="slide-panel active" id="panel-0">
+        <div class="image-stage">
+            <div class="corner-tr"></div><div class="corner-bl"></div>
+            <div class="scanlines"></div>
+            <div class="stage-topbar">
+                <span class="stage-id">MAIN DASHBOARD · OVERVIEW</span>
+                <div class="stage-right">
+                    <span class="sub-counter" id="subCount">1 / 4</span>
+                    <div class="stage-live"><div class="live-dot"></div>TABLEAU ANALYTICS</div>
+                </div>
+            </div>
+
+            <!-- ── SUB IMAGE 1 ──
+                 To use your image replace the <div class="img-placeholder">...</div>
+                 with: <img src="your-image.png" class="main-img" alt="Dashboard 1">
+            -->
+            <div class="sub-panel active" id="sub-0">
+                <div class="img-placeholder">
+                    <img src="./images/screenshot 2026-03-08 121826.png" alt="">
+                </div>
+            </div>
+
+            <!-- ── SUB IMAGE 2 ── -->
+            <div class="sub-panel" id="sub-1">
+                <div class="img-placeholder">
+                    <img src="./images/screenshot 2026-03-08 121927.png" alt="">
+                </div>
+            </div>
+
+            <!-- ── SUB IMAGE 3 ── -->
+            <div class="sub-panel" id="sub-2">
+                <div class="img-placeholder">
+                   <img src="./images/screenshot 2026-03-08 121953.png" alt="">
+                </div>
+            </div>
+
+            <!-- ── SUB IMAGE 4 ── -->
+            <div class="sub-panel" id="sub-3">
+                <img src="./images/screenshot 2026-03-08 122012.png" alt="">
+            </div>
+
+            <!-- INNER NAV -->
+            <div class="inner-nav">
+                <button class="inner-arrow dim" id="subPrev" onclick="subNav(-1)">&#8592;</button>
+                <div class="inner-dots" id="subDots">
+                    <span class="inner-dot active" onclick="subGo(0)"></span>
+                    <span class="inner-dot"        onclick="subGo(1)"></span>
+                    <span class="inner-dot"        onclick="subGo(2)"></span>
+                    <span class="inner-dot"        onclick="subGo(3)"></span>
+                </div>
+                <span class="inner-count" id="innerCount">1 / 4</span>
+                <button class="inner-arrow" id="subNext" onclick="subNav(1)">&#8594;</button>
+            </div>
+        </div>
+
+        <div class="info-bar">
+            <div class="info-num">01</div>
+            <div>
+                <span class="info-persona">📋 Overview · All Scenarios Combined</span>
+                <div class="info-title">Main EV Analytics Dashboard</div>
+                <p class="info-desc">A consolidated multi-view dashboard covering all three EV analytics scenarios — charging patterns, battery performance, and model efficiency. Use the ← → arrows to browse each panel.</p>
+            </div>
+            <div class="info-tags">
+                <span class="tag">OVERVIEW</span>
+                <span class="tag">MULTI-VIEW</span>
+                <span class="tag">TABLEAU</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SLIDE 2 — CHARGING PATTERNS
+    ══════════════════════════════════════ -->
+    <div class="slide-panel" id="panel-1">
+        <div class="image-stage">
+            <div class="corner-tr"></div><div class="corner-bl"></div>
+            <div class="scanlines"></div>
+            <div class="stage-topbar">
+                <span class="stage-id">SCENARIO 01 · CHARGING PATTERNS</span>
+                <div class="stage-live"><div class="live-dot"></div>TABLEAU ANALYTICS</div>
+            </div>
+            <!--
+                Replace the placeholder below with your image:
+                <img src="charging.png" class="main-img" alt="Charging Patterns">
+            -->
+            <div class="img-placeholder">
+                <img src="./images/screenshot 2026-03-08 122830.png" alt="">
+            </div>
+        </div>
+        <div class="info-bar">
+            <div class="info-num">02</div>
+            <div>
+                <span class="info-persona">👤 Prachi Sharma· City Energy Planner</span>
+                <div class="info-title">Charging Pattern & Usage Analysis</div>
+                <p class="info-desc">Visualizes when and where EVs charge across urban zones. Heatmaps reveal peak demand hours, enabling grid stability management and data-driven infrastructure planning for sustainable city growth.</p>
+            </div>
+            <div class="info-tags">
+                <span class="tag">PEAK HOURS</span>
+                <span class="tag">HEATMAP</span>
+                <span class="tag">GRID STABILITY</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SLIDE 3 — BATTERY PERFORMANCE
+    ══════════════════════════════════════ -->
+    <div class="slide-panel" id="panel-2">
+        <div class="image-stage">
+            <div class="corner-tr"></div><div class="corner-bl"></div>
+            <div class="scanlines"></div>
+            <div class="stage-topbar">
+                <span class="stage-id">SCENARIO 02 · BATTERY PERFORMANCE</span>
+                <div class="stage-live"><div class="live-dot"></div>TABLEAU ANALYTICS</div>
+            </div>
+            <!--
+                Replace the placeholder below with your image:
+                <img src="battery.png" class="main-img" alt="Battery Performance">
+            -->
+            <div class="img-placeholder">
+                <img src="./images/screenshot 2026-03-08 122848.png" alt="">
+            </div>
+        </div>
+        <div class="info-bar">
+            <div class="info-num">03</div>
+            <div>
+                <span class="info-persona">👤 Piyush Kumar raj · Fleet Manager</span>
+                <div class="info-title">Battery Performance vs. Driving Range</div>
+                <p class="info-desc">Tracks state of charge, depth of discharge, and efficiency across an EV taxi fleet. Compares predicted vs actual range and anticipates battery replacements to reduce downtime and cost.</p>
+            </div>
+            <div class="info-tags">
+                <span class="tag">STATE OF CHARGE</span>
+                <span class="tag">FLEET MGMT</span>
+                <span class="tag">PREDICTIVE</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SLIDE 4 — MODEL EFFICIENCY
+    ══════════════════════════════════════ -->
+    <div class="slide-panel" id="panel-3">
+        <div class="image-stage">
+            <div class="corner-tr"></div><div class="corner-bl"></div>
+            <div class="scanlines"></div>
+            <div class="stage-topbar">
+                <span class="stage-id">SCENARIO 03 · MODEL EFFICIENCY</span>
+                <div class="stage-live"><div class="live-dot"></div>TABLEAU ANALYTICS</div>
+            </div>
+            <!--
+                Replace the placeholder below with your image:
+                <img src="model.png" class="main-img" alt="Model Efficiency">
+            -->
+            <div class="img-placeholder">
+                <img src="./images/screenshot 2026-03-08 122857.png" alt="">
+            </div>
+        </div>
+        <div class="info-bar">
+            <div class="info-num">04</div>
+            <div>
+                <span class="info-persona">👤 Piyush Kumar · EV Consumer</span>
+                <div class="info-title">Comparative EV Model Efficiency</div>
+                <p class="info-desc">Compare EV models across performance, range, charging cost, and environmental impact. Filter by driving style and region for personalized cost-per-km and CO₂ savings projections.</p>
+            </div>
+            <div class="info-tags">
+                <span class="tag">COST/KM</span>
+                <span class="tag">CO₂ SAVINGS</span>
+                <span class="tag">COMPARE</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         SLIDE 5 — ALL GRAPHS GRID
+    ══════════════════════════════════════ -->
+    <div class="slide-panel" id="panel-4">
+
+        <div class="stage-topbar" style="border:1px solid var(--border); background:rgba(0,5,15,0.97);">
+            <span class="stage-id">05 · ALL GRAPHS · COMPLETE OVERVIEW</span>
+            <div class="stage-live"><div class="live-dot"></div>PowerBI ANALYTICS</div>
+        </div>
+
+        <!-- INFO BAR -->
+        
+        <!-- GRAPHS GRID -->
+        <div class="all-graphs-grid">
+            
+            <img src="./images/screenshot 2026-03-08 122107.png" alt="">
+            <!-- GRAPH 1 -->
+                <div class="graph-card-bottom">
+                    <span class="graph-persona">📋 Overview Panel 3</span>
+                </div>
+            </div>
+            <div class="info-bar">
+                <div class="info-num">05</div>
+                <div>
+                    <span class="info-persona">👤 Piyush Goel · All Data Analysis</span>
+                    <div class="info-title">All Pattern Changes — Complete Graph View</div>
+                    <p class="info-desc">Uses all plotting techniques like bar, column, scatter, card (KPI) across all scenarios. A complete visual overview of every dashboard in one place.</p>
+                </div>
+                <div class="info-tags">
+                    <span class="tag">ALL DATA</span>
+                    <span class="tag">BAR · COLUMN · SCATTER</span>
+                    <span class="tag">KPI CARDS</span>
+                </div>
+            </div>
+            
+        </div><!-- /all-graphs-grid -->
+    </div><!-- /panel-4 -->
+
+    <!-- THUMBNAIL STRIP -->
+    <div class="thumb-strip">
+        <div class="thumb-item active" id="thumb-0" onclick="showSlide(0)">
+            <div class="thumb-badge">4 imgs</div>
+            <div class="thumb-ph">📊</div>
+            <div class="thumb-label">Main Dashboard</div>
+        </div>
+        <div class="thumb-item" id="thumb-1" onclick="showSlide(1)">
+            <div class="thumb-ph">🏙️</div>
+            <div class="thumb-label">Charging Patterns</div>
+        </div>
+        <div class="thumb-item" id="thumb-2" onclick="showSlide(2)">
+            <div class="thumb-ph">🔋</div>
+            <div class="thumb-label">Battery Performance</div>
+        </div>
+        <div class="thumb-item" id="thumb-3" onclick="showSlide(3)">
+            <div class="thumb-ph">🌱</div>
+            <div class="thumb-label">Model Efficiency</div>
+        </div>
+        <div class="thumb-item" id="thumb-4" onclick="showSlide(4)">
+            <div class="thumb-ph">🗂️</div>
+            <div class="thumb-label">All Graphs</div>
+        </div>
+    </div>
+
+    <div class="hint">CLICK TABS OR THUMBNAILS TO SWITCH · USE ← → INSIDE MAIN DASHBOARD TO BROWSE IMAGES</div>
+
+</div><!-- /page-wrap -->
+
+<script>
+// ── OUTER SLIDE SWITCHER ─────────────────────────────
+const TOTAL_SLIDES = 4;
+let currentSlide = 0;
+const progressWidths = ['20%','40%','60%','80%','100%'];
+
+function showSlide(n) {
+    // Hide all panels + deactivate tabs/thumbs
+    document.querySelectorAll('.slide-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
+
+    // Show selected
+    document.getElementById('panel-' + n).classList.add('active');
+    document.querySelectorAll('.tab-btn')[n].classList.add('active');
+    document.getElementById('thumb-' + n).classList.add('active');
+    document.getElementById('progressBar').style.width = progressWidths[n];
+    currentSlide = n;
+}
+
+// ── INNER SUB-IMAGE SWITCHER (Main Dashboard only) ───
+const TOTAL_SUBS = 4;
+let currentSub = 0;
+
+function subNav(dir) {
+    const next = currentSub + dir;
+    if (next < 0 || next >= TOTAL_SUBS) return;
+    subGo(next);
+}
+
+function subGo(n) {
+    // Hide all sub panels + deactivate dots
+    document.querySelectorAll('.sub-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.inner-dot').forEach(d => d.classList.remove('active'));
+
+    // Show selected
+    document.getElementById('sub-' + n).classList.add('active');
+    document.querySelectorAll('.inner-dot')[n].classList.add('active');
+
+    // Update counter
+    const label = (n + 1) + ' / ' + TOTAL_SUBS;
+    document.getElementById('innerCount').textContent = label;
+    document.getElementById('subCount').textContent   = label;
+
+    // Dim arrows at ends
+    document.getElementById('subPrev').classList.toggle('dim', n === 0);
+    document.getElementById('subNext').classList.toggle('dim', n === TOTAL_SUBS - 1);
+
+    currentSub = n;
+}
+</script>
+
+</body>
+</html>
