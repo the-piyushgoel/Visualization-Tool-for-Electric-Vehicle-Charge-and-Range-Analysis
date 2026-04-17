@@ -1,5 +1,3 @@
-Here is a professional GitHub README for your project. You can copy-paste this directly into your repository’s README.md.
-
 ⚡ Electric Vehicle Data Analysis & Visualization Dashboard
 
 An end-to-end data analytics project that analyzes Electric Vehicle (EV) charging patterns, battery performance, and EV model efficiency using cloud databases, Power BI dashboards, and a Flask web interface.
